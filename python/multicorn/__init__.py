@@ -456,6 +456,9 @@ class ForeignDataWrapper(object):
         """
         raise NotImplementedError(
             "This FDW does not support IMPORT FOREIGN SCHEMA")
+    
+    def is_parallel_safe(self):
+        return False
 
 
 class TransactionAwareForeignDataWrapper(ForeignDataWrapper):

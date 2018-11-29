@@ -98,6 +98,10 @@ static List *multicornImportForeignSchema(ImportForeignSchemaStmt * stmt,
 							 Oid serverOid);
 #endif
 
+#if PG_VERSION_NUM >= 100000
+bool IsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte);
+#endif
+
 static void multicorn_xact_callback(XactEvent event, void *arg);
 
 /*	Helpers functions */
@@ -171,6 +175,10 @@ multicorn_handler(PG_FUNCTION_ARGS)
 	fdw_routine->ImportForeignSchema = multicornImportForeignSchema;
 #endif
 
+#if PG_VERSION_NUM >= 100000
+	fdw_routine->IsForeignScanParallelSafe = IsForeignScanParallelSafe;
+#endif
+
 	PG_RETURN_POINTER(fdw_routine);
 }
 
@@ -214,6 +222,14 @@ multicorn_validator(PG_FUNCTION_ARGS)
 		Py_DECREF(p_class);
 	}
 	PG_RETURN_VOID();
+}
+
+/*
+ * Make the foreign data wrapper safe for parallel scan.
+ */
+bool IsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte) {
+	MulticornPlanState *planstate = (MulticornPlanState *) rel->fdw_private;
+	return true;
 }
 
 
