@@ -104,6 +104,11 @@ bool IsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry
 
 static void multicorn_xact_callback(XactEvent event, void *arg);
 
+#ifdef _WINDOWS
+#define strcasecmp stricmp
+#endif
+
+
 /*	Helpers functions */
 void	   *serializePlanState(MulticornPlanState * planstate);
 MulticornExecState *initializeExecState(void *internal_plan_state);
@@ -224,17 +229,39 @@ multicorn_validator(PG_FUNCTION_ARGS)
 	PG_RETURN_VOID();
 }
 
+
 /*
  * Make the foreign data wrapper safe for parallel scan.
  */
 bool IsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte) {
-	MulticornPlanState *planstate = (MulticornPlanState *) rel->fdw_private;
-	PyObject* ret = PyObject_CallMethod(planstate->fdw_instance, "is_parallel_safe", NULL);
 
-	bool retVal = PyObject_IsTrue(ret);
-	Py_XDECREF(ret);
+	ForeignServer *f_server = GetForeignServer(rel->serverid);
+	List *options = f_server->options;
+	ListCell *lc;
 
-	return retVal;
+	foreach(lc, options)
+	{
+		DefElem *def = (DefElem *) lfirst(lc);
+
+		if (strcmp(def->defname, "parallel_safe") == 0) {
+			const char* ret = defGetString(def);
+			size_t len = strlen(ret);
+
+			if (len == 1) {
+				if (ret[0] == '1' || ret[0] == 't' || ret[0] == 'T') {
+					return true;
+				}
+			} else {
+				int cmp = strcasecmp(ret, "true");
+
+				if (cmp == 0) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 
