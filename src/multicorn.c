@@ -229,7 +229,12 @@ multicorn_validator(PG_FUNCTION_ARGS)
  */
 bool IsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte) {
 	MulticornPlanState *planstate = (MulticornPlanState *) rel->fdw_private;
-	return true;
+	PyObject* ret = PyObject_CallMethod(planstate->fdw_instance, "is_parallel_safe", NULL);
+
+	bool retVal = PyObject_IsTrue(ret);
+	Py_XDECREF(ret);
+
+	return retVal;
 }
 
 

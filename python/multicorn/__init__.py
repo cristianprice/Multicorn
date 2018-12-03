@@ -458,6 +458,9 @@ class ForeignDataWrapper(object):
             "This FDW does not support IMPORT FOREIGN SCHEMA")
     
     def is_parallel_safe(self):
+        """
+        Allow a parallel scan on this wrapper.
+        """
         return False
 
 
